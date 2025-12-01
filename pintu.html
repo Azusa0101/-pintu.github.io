@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页版拼图游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: #f0f4f8;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .header {
+            background: #3b82f6;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .tab-container {
+            display: flex;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .tab {
+            padding: 15px 0;
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            font-size: 16px;
+            color: #4b5563;
+        }
+        .tab.active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .tab:hover:not(.active) {
+            background: #f8fafc;
+        }
+        .content {
+            padding: 30px;
+            display: none;
+        }
+        .content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #1f2937;
+        }
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+        .error-message {
+            color: #ef4444;
+            margin: 10px 0;
+            height: 20px;
+            text-align: center;
+        }
+        .success-message {
+            color: #10b981;
+            margin: 10px 0;
+            height: 20px;
+            text-align: center;
+        }
+        /* 游戏面板样式 */
+        .game-wrapper {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .game-info {
+            width: 280px;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .info-item {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        .info-label {
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #1f2937;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        .timer {
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            color: #3b82f6;
+            margin: 20px 0;
+        }
+        .difficulty-select {
+            margin: 20px 0;
+        }
+        .difficulty-btn {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .difficulty-btn.active {
+            background: #2563eb;
+        }
+        .puzzle-container {
+            display: grid;
+            gap: 2px;
+            background: #ddd;
+            padding: 3px;
+            border-radius: 6px;
+        }
+        .puzzle-piece {
+            background-size: calc(100% * var(--puzzle-size)) calc(100% * var(--puzzle-size));
+            background-repeat: no-repeat;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 3px;
+        }
+        .puzzle-piece.empty {
+            background: #f3f4f6;
+            cursor: default;
+        }
+        .puzzle-piece:hover:not(.empty) {
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .preview-img {
+            width: 100%;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        .user-info {
+            text-align: right;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .user-info span {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        /* 排行榜样式 */
+        .ranking-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.2s;
+        }
+        .ranking-item:hover {
+            background: #f8fafc;
+        }
+        .ranking-rank {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .rank-1 {
+            background: #f59e0b;
+        }
+        .rank-2 {
+            background: #9ca3af;
+        }
+        .rank-3 {
+            background: #d97706;
+        }
+        .rank-other {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        .ranking-username {
+            flex: 1;
+            font-size: 16px;
+        }
+        .ranking-time {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        .ranking-difficulty {
+            margin-left: 20px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .no-ranking {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">网页版拼图游戏</div>
+        
+        <!-- 标签栏 -->
+        <div class="tab-container">
+            <div class="tab active" data-tab="login">登录</div>
+            <div class="tab" data-tab="register">注册</div>
+            <div class="tab" data-tab="game">开始游戏</div>
+            <div class="tab" data-tab="ranking">排行榜</div>
+            <div class="tab" data-tab="settings">个人设置</div>
+        </div>
+        
+        <!-- 登录面板 -->
+        <div class="content active" id="login">
+            <div style="max-width: 400px; margin: 0 auto;">
+                <div class="form-group">
+                    <label for="login-username">用户名</label>
+                    <input type="text" id="login-username" placeholder="请输入用户名" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">密码</label>
+                    <input type="password" id="login-password" placeholder="请输入密码">
+                </div>
+                <div class="error-message" id="login-error"></div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="login()">登录</button>
+            </div>
+        </div>
+        
+        <!-- 注册面板 -->
+        <div class="content" id="register">
+            <div style="max-width: 400px; margin: 0 auto;">
+                <div class="form-group">
+                    <label for="reg-username">用户名</label>
+                    <input type="text" id="reg-username" placeholder="请设置用户名（3-12位）" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">密码</label>
+                    <input type="password" id="reg-password" placeholder="请设置密码（6-16位）">
+                </div>
+                <div class="form-group">
+                    <label for="reg-confirm">确认密码</label>
+                    <input type="password" id="reg-confirm" placeholder="请再次输入密码">
+                </div>
+                <div class="error-message" id="reg-error"></div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="register()">注册</button>
+            </div>
+        </div>
+        
+        <!-- 游戏面板 -->
+        <div class="content" id="game">
+            <div class="user-info">当前登录：<span id="game-username">-</span> <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="logout()">退出登录</button></div>
+            
+            <div class="game-wrapper">
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">当前难度</div>
+                        <div class="info-value" id="current-difficulty">简单（3x3）</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">移动次数</div>
+                        <div class="info-value" id="move-count">0</div>
+                    </div>
+                    <div class="timer" id="game-timer">00:00</div>
+                    
+                    <div class="difficulty-select">
+                        <button class="btn btn-primary difficulty-btn active" onclick="setDifficulty(3)">简单（3x3）</button>
+                        <button class="btn btn-primary difficulty-btn" onclick="setDifficulty(4)">中等（4x4）</button>
+                        <button class="btn btn-primary difficulty-btn" onclick="setDifficulty(5)">困难（5x5）</button>
+                    </div>
+                    
+                    <button class="btn btn-success" style="width: 100%;" onclick="startGame()">开始游戏</button>
+                    <button class="btn btn-danger" style="width: 100%; margin-top: 10px;" onclick="resetGame()">重置游戏</button>
+                </div>
+                
+                <div style="flex: 1; min-width: 300px; max-width: 600px;">
+                    <h3 style="text-align: center; margin-bottom: 15px; color: #1f2937;">拼图预览</h3>
+                    <img src="https://picsum.photos/800/600?random=5" alt="拼图原图" class="preview-img" id="preview-img">
+                    
+                    <h3 style="text-align: center; margin: 20px 0 15px; color: #1f2937;">游戏区域</h3>
+                    <div class="puzzle-container" id="puzzle-container"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 排行榜面板 -->
+        <div class="content" id="ranking">
+            <div class="user-info">当前登录：<span id="ranking-username">-</span> <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="logout()">退出登录</button></div>
+            
+            <h3 style="margin: 20px 0; color: #1f2937;">全局排行榜</h3>
+            <div class="form-group" style="max-width: 300px;">
+                <label for="ranking-difficulty">选择难度</label>
+                <select id="ranking-difficulty" onchange="loadRanking()">
+                    <option value="3">简单（3x3）</option>
+                    <option value="4">中等（4x4）</option>
+                    <option value="5">困难（5x5）</option>
+                </select>
+            </div>
+            <ul class="ranking-list" id="global-ranking"></ul>
+            
+            <h3 style="margin: 30px 0 20px; color: #1f2937;">我的排名</h3>
+            <ul class="ranking-list" id="my-ranking"></ul>
+        </div>
+        
+        <!-- 个人设置面板 -->
+        <div class="content" id="settings">
+            <div class="user-info">当前登录：<span id="settings-username">-</span> <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="logout()">退出登录</button></div>
+            
+            <div style="max-width: 400px; margin: 0 auto;">
+                <h3 style="margin: 20px 0; color: #1f2937;">修改密码</h3>
+                <div class="form-group">
+                    <label for="old-password">原密码</label>
+                    <input type="password" id="old-password" placeholder="请输入原密码">
+                </div>
+                <div class="form-group">
+                    <label for="new-password">新密码</label>
+                    <input type="password" id="new-password" placeholder="请设置新密码（6-16位）">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-new-password">确认新密码</label>
+                    <input type="password" id="confirm-new-password" placeholder="请再次输入新密码">
+                </div>
+                <div class="error-message" id="change-pwd-error"></div>
+                <div class="success-message" id="change-pwd-success"></div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="changePassword()">保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let currentDifficulty = 3; // 默认3x3难度
+        let puzzleSize = currentDifficulty; // 拼图尺寸
+        let puzzlePieces = []; // 存储每个碎片的目标位置（一维数组）
+        let emptyIndex = 0; // 空白块在一维数组中的索引
+        let isPlaying = false; // 是否正在游戏
+        let gameTimer = null; // 游戏计时器
+        let gameTime = 0; // 游戏时间（秒）
+        let moveCount = 0; // 移动次数
+        const puzzleImage = 'https://picsum.photos/800/600?random=5'; // 拼图原图
+
+        // 页面加载初始化
+        window.onload = function() {
+            initTabs();
+            // 初始化本地存储
+            if (!localStorage.getItem('userList')) {
+                localStorage.setItem('userList', '[]');
+            }
+            if (!localStorage.getItem('puzzleScores')) {
+                localStorage.setItem('puzzleScores', '[]');
+            }
+            // 初始化拼图
+            generatePuzzle();
+        };
+
+        // 初始化标签切换
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 未登录不能进入游戏、排行榜、设置面板
+                    const tabId = this.getAttribute('data-tab');
+                    if ((tabId === 'game' || tabId === 'ranking' || tabId === 'settings') && !currentUser) {
+                        alert('请先登录！');
+                        document.querySelector('.tab[data-tab="login"]').click();
+                        return;
+                    }
+
+                    // 切换标签激活状态
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 切换内容显示
+                    document.querySelectorAll('.content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // 切换到对应面板时更新数据
+                    if (tabId === 'game') {
+                        updateGameUser();
+                        generatePuzzle();
+                    } else if (tabId === 'ranking') {
+                        updateRankingUser();
+                        loadRanking();
+                    } else if (tabId === 'settings') {
+                        updateSettingsUser();
+                    }
+                });
+            });
+        }
+
+        // 注册功能
+        function register() {
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirmPwd = document.getElementById('reg-confirm').value;
+            const errorEl = document.getElementById('reg-error');
+
+            // 验证规则
+            if (!username || username.length < 3 || username.length > 12) {
+                errorEl.textContent = '用户名必须为3-12位';
+                return;
+            }
+            if (!password || password.length < 6 || password.length > 16) {
+                errorEl.textContent = '密码必须为6-16位';
+                return;
+            }
+            if (password !== confirmPwd) {
+                errorEl.textContent = '两次密码输入不一致';
+                return;
+            }
+            if (localStorage.getItem(`user_${username}`)) {
+                errorEl.textContent = '该用户名已被注册';
+                return;
+            }
+
+            // 保存用户数据
+            const userData = {
+                username,
+                password
+            };
+            localStorage.setItem(`user_${username}`, JSON.stringify(userData));
+            
+            // 更新用户列表
+            let userList = JSON.parse(localStorage.getItem('userList') || '[]');
+            if (!userList.includes(username)) {
+                userList.push(username);
+                localStorage.setItem('userList', JSON.stringify(userList));
+            }
+
+            errorEl.textContent = '';
+            alert('注册成功！请登录');
+            document.querySelector('.tab[data-tab="login"]').click();
+        }
+
+        // 登录功能
+        function login() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+
+            // 获取用户数据
+            const userStr = localStorage.getItem(`user_${username}`);
+            if (!userStr) {
+                errorEl.textContent = '用户名不存在';
+                return;
+            }
+
+            const userData = JSON.parse(userStr);
+            if (userData.password !== password) {
+                errorEl.textContent = '密码错误';
+                return;
+            }
+
+            // 登录成功
+            currentUser = userData;
+            errorEl.textContent = '';
+            
+            // 切换到游戏面板
+            document.querySelector('.tab[data-tab="game"]').click();
+        }
+
+        // 退出登录
+        function logout() {
+            // 停止计时器
+            if (gameTimer) {
+                clearInterval(gameTimer);
+                gameTimer = null;
+            }
+            
+            currentUser = null;
+            isPlaying = false;
+            gameTime = 0;
+            moveCount = 0;
+            document.getElementById('game-timer').textContent = '00:00';
+            document.getElementById('move-count').textContent = '0';
+            
+            document.querySelector('.tab[data-tab="login"]').click();
+        }
+
+        // 更新游戏面板用户信息
+        function updateGameUser() {
+            if (currentUser) {
+                document.getElementById('game-username').textContent = currentUser.username;
+            }
+        }
+
+        // 更新排行榜用户信息
+        function updateRankingUser() {
+            if (currentUser) {
+                document.getElementById('ranking-username').textContent = currentUser.username;
+            }
+        }
+
+        // 更新设置面板用户信息
+        function updateSettingsUser() {
+            if (currentUser) {
+                document.getElementById('settings-username').textContent = currentUser.username;
+            }
+        }
+
+        // 设置难度
+        function setDifficulty(difficulty) {
+            currentDifficulty = difficulty;
+            puzzleSize = difficulty;
+            
+            // 更新难度按钮状态
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 更新难度显示
+            const difficultyText = { 3: '简单（3x3）', 4: '中等（4x4）', 5: '困难（5x5）' };
+            document.getElementById('current-difficulty').textContent = difficultyText[difficulty];
+            
+            // 重置游戏状态
+            if (gameTimer) {
+                clearInterval(gameTimer);
+                gameTimer = null;
+            }
+            isPlaying = false;
+            gameTime = 0;
+            moveCount = 0;
+            document.getElementById('game-timer').textContent = '00:00';
+            document.getElementById('move-count').textContent = '0';
+            
+            // 生成新拼图
+            generatePuzzle();
+        }
+
+        // 生成拼图（确保可还原）
+        function generatePuzzle() {
+            const container = document.getElementById('puzzle-container');
+            const containerSize = Math.min(600, container.parentElement.clientWidth - 40);
+            container.style.width = `${containerSize}px`;
+            container.style.height = `${containerSize}px`;
+            container.style.gridTemplateColumns = `repeat(${puzzleSize}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${puzzleSize}, 1fr)`;
+            
+            // 清空容器
+            container.innerHTML = '';
+            puzzlePieces = [];
+            const totalPieces = puzzleSize * puzzleSize;
+            
+            // 生成完整的目标位置数组（0到totalPieces-1）
+            for (let i = 0; i < totalPieces; i++) {
+                puzzlePieces.push(i);
+            }
+            
+            // 设置空白块（默认在最后一个位置）
+            emptyIndex = totalPieces - 1;
+            puzzlePieces[emptyIndex] = -1; // 用-1标记空白块
+            
+            // 打乱拼图（确保可还原）
+            shufflePuzzleSafely();
+            
+            // 创建拼图碎片
+            puzzlePieces.forEach((targetIndex, pieceIndex) => {
+                const piece = document.createElement('div');
+                piece.className = `puzzle-piece ${targetIndex === -1 ? 'empty' : ''}`;
+                piece.dataset.index = pieceIndex;
+                piece.style.setProperty('--puzzle-size', puzzleSize); // 设置CSS变量
+                
+                if (targetIndex !== -1) {
+                    // 计算目标行列：将一维索引转为二维行列
+                    const targetRow = Math.floor(targetIndex / puzzleSize);
+                    const targetCol = targetIndex % puzzleSize;
+                    
+                    // 计算背景图位置：每个碎片对应原图的 (目标行, 目标列) 区域
+                    const pieceWidth = 100 / puzzleSize; // 每个碎片占原图的百分比
+                    const bgPosX = -targetCol * pieceWidth + '%';
+                    const bgPosY = -targetRow * pieceWidth + '%';
+                    
+                    piece.style.backgroundImage = `url(${puzzleImage})`;
+                    piece.style.backgroundPosition = `${bgPosX} ${bgPosY}`;
+                    
+                    // 绑定点击事件
+                    piece.addEventListener('click', () => movePiece(pieceIndex));
+                }
+                
+                container.appendChild(piece);
+            });
+        }
+
+        // 安全打乱拼图（确保始终可还原）
+        function shufflePuzzleSafely() {
+            const totalPieces = puzzleSize * puzzleSize;
+            let shuffleCount = 500; // 控制打乱次数，避免不可还原
+            
+            while (shuffleCount > 0) {
+                const possibleMoves = [];
+                const row = Math.floor(emptyIndex / puzzleSize);
+                const col = emptyIndex % puzzleSize;
+                
+                // 收集可移动的相邻碎片索引
+                if (row > 0) possibleMoves.push(emptyIndex - puzzleSize); // 上
+                if (row < puzzleSize - 1) possibleMoves.push(emptyIndex + puzzleSize); // 下
+                if (col > 0) possibleMoves.push(emptyIndex - 1); // 左
+                if (col < puzzleSize - 1) possibleMoves.push(emptyIndex + 1); // 右
+                
+                // 随机选择一个碎片交换
+                const randomIndex = Math.floor(Math.random() * possibleMoves.length);
+                const targetIndex = possibleMoves[randomIndex];
+                
+                // 交换位置
+                [puzzlePieces[emptyIndex], puzzlePieces[targetIndex]] = [puzzlePieces[targetIndex], puzzlePieces[emptyIndex]];
+                emptyIndex = targetIndex;
+                
+                shuffleCount--;
+            }
+        }
+
+        // 移动拼图碎片
+        function movePiece(pieceIndex) {
+            if (!isPlaying) return;
+            
+            const totalPieces = puzzleSize * puzzleSize;
+            if (pieceIndex < 0 || pieceIndex >= totalPieces) return; // 无效索引
+            
+            const row = Math.floor(pieceIndex / puzzleSize);
+            const col = pieceIndex % puzzleSize;
+            const emptyRow = Math.floor(emptyIndex / puzzleSize);
+            const emptyCol = emptyIndex % puzzleSize;
+            
+            // 判断是否与空白块相邻
+            const isAdjacent = (
+                (row === emptyRow && Math.abs(col - emptyCol) === 1) || // 同一行
+                (col === emptyCol && Math.abs(row - emptyRow) === 1)   // 同一列
+            );
+            
+            if (isAdjacent) {
+                // 交换碎片位置
+                [puzzlePieces[pieceIndex], puzzlePieces[emptyIndex]] = [puzzlePieces[emptyIndex], puzzlePieces[pieceIndex]];
+                
+                // 更新DOM
+                const pieces = document.querySelectorAll('.puzzle-piece');
+                const currentPiece = pieces[pieceIndex];
+                const emptyPiece = pieces[emptyIndex];
+                
+                // 交换样式、背景图和背景位置
+                [currentPiece.className, emptyPiece.className] = [emptyPiece.className, currentPiece.className];
+                [currentPiece.style.backgroundImage, emptyPiece.style.backgroundImage] = [emptyPiece.style.backgroundImage, currentPiece.style.backgroundImage];
+                [currentPiece.style.backgroundPosition, emptyPiece.style.backgroundPosition] = [emptyPiece.style.backgroundPosition, currentPiece.style.backgroundPosition];
+                
+                // 更新空白块索引和移动次数
+                emptyIndex = pieceIndex;
+                moveCount++;
+                document.getElementById('move-count').textContent = moveCount;
+                
+                // 检查是否完成拼图
+                if (checkComplete()) {
+                    completeGame();
+                }
+            }
+        }
+
+        // 检查拼图是否完成
+        function checkComplete() {
+            const totalPieces = puzzleSize * puzzleSize;
+            for (let i = 0; i < totalPieces; i++) {
+                // 除了最后一个位置（空白块），其他位置必须等于索引
+                if (i !== totalPieces - 1 && puzzlePieces[i] !== i) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (isPlaying) return;
+            
+            isPlaying = true;
+            gameTime = 0;
+            moveCount = 0;
+            document.getElementById('move-count').textContent = '0';
+            
+            // 启动计时器
+            if (gameTimer) {
+                clearInterval(gameTimer);
+            }
+            gameTimer = setInterval(() => {
+                gameTime++;
+                updateTimerDisplay();
+            }, 1000);
+            
+            // 重新生成并打乱拼图
+            generatePuzzle();
+        }
+
+        // 重置游戏
+        function resetGame() {
+            if (gameTimer) {
+                clearInterval(gameTimer);
+                gameTimer = null;
+            }
+            isPlaying = false;
+            gameTime = 0;
+            moveCount = 0;
+            document.getElementById('game-timer').textContent = '00:00';
+            document.getElementById('move-count').textContent = '0';
+            
+            generatePuzzle();
+        }
+
+        // 更新计时器显示
+        function updateTimerDisplay() {
+            const minutes = Math.floor(gameTime / 60).toString().padStart(2, '0');
+            const seconds = (gameTime % 60).toString().padStart(2, '0');
+            document.getElementById('game-timer').textContent = `${minutes}:${seconds}`;
+        }
+
+        // 完成游戏
+        function completeGame() {
+            clearInterval(gameTimer);
+            gameTimer = null;
+            isPlaying = false;
+            
+            const timeText = document.getElementById('game-timer').textContent;
+            alert(`恭喜完成拼图！\n用时：${timeText}\n移动次数：${moveCount}`);
+            
+            // 保存成绩
+            if (currentUser) {
+                const scores = JSON.parse(localStorage.getItem('puzzleScores') || '[]');
+                scores.push({
+                    username: currentUser.username,
+                    difficulty: currentDifficulty,
+                    time: gameTime,
+                    timeText: timeText,
+                    moveCount: moveCount,
+                    date: new Date().toLocaleString()
+                });
+                localStorage.setItem('puzzleScores', JSON.stringify(scores));
+                
+                // 刷新排行榜
+                loadRanking();
+            }
+        }
+
+        // 加载排行榜
+        function loadRanking() {
+            const globalRankingEl = document.getElementById('global-ranking');
+            const myRankingEl = document.getElementById('my-ranking');
+            const difficulty = parseInt(document.getElementById('ranking-difficulty').value);
+            const scores = JSON.parse(localStorage.getItem('puzzleScores') || '[]');
+            
+            // 筛选对应难度的成绩
+            let filteredScores = scores.filter(score => score.difficulty === difficulty);
+            
+            // 按时间排序（时间越短排名越前）
+            filteredScores.sort((a, b) => {
+                if (a.time !== b.time) {
+                    return a.time - b.time;
+                }
+                return a.moveCount - b.moveCount; // 时间相同按移动次数排序
+            });
+
+            // 渲染全局排行榜
+            globalRankingEl.innerHTML = '';
+            if (filteredScores.length === 0) {
+                globalRankingEl.innerHTML = '<li class="no-ranking">暂无该难度的游戏记录</li>';
+            } else {
+                filteredScores.slice(0, 10).forEach((score, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'ranking-item';
+                    
+                    // 排名样式
+                    let rankClass = 'rank-other';
+                    if (index === 0) rankClass = 'rank-1';
+                    else if (index === 1) rankClass = 'rank-2';
+                    else if (index === 2) rankClass = 'rank-3';
+                    
+                    li.innerHTML = `
+                        <div class="ranking-rank ${rankClass}">${index + 1}</div>
+                        <div class="ranking-username">${score.username}</div>
+                        <div class="ranking-time">${score.timeText}</div>
+                        <div class="ranking-difficulty">移动: ${score.moveCount}次</div>
+                    `;
+                    globalRankingEl.appendChild(li);
+                });
+            }
+
+            // 渲染我的排名
+            myRankingEl.innerHTML = '';
+            if (!currentUser) {
+                myRankingEl.innerHTML = '<li class="no-ranking">请先登录查看我的排名</li>';
+            } else {
+                const myScores = filteredScores.filter(score => score.username === currentUser.username);
+                if (myScores.length === 0) {
+                    myRankingEl.innerHTML = '<li class="no-ranking">暂无该难度的游戏记录</li>';
+                } else {
+                    // 按时间排序我的成绩
+                    myScores.sort((a, b) => {
+                        if (a.time !== b.time) {
+                            return a.time - b.time;
+                        }
+                        return a.moveCount - b.moveCount;
+                    });
+                    
+                    myScores.forEach((score, index) => {
+                        const li = document.createElement('li');
+                        li.className = 'ranking-item';
+                        
+                        // 找到在全局中的排名
+                        const globalRank = filteredScores.findIndex(s => s.username === score.username && s.time === score.time && s.moveCount === score.moveCount) + 1;
+                        
+                        li.innerHTML = `
+                            <div class="ranking-rank ${globalRank <= 3 ? ['rank-1', 'rank-2', 'rank-3'][globalRank - 1] : 'rank-other'}">${globalRank}</div>
+                            <div class="ranking-username">${score.username}（我的记录）</div>
+                            <div class="ranking-time">${score.timeText}</div>
+                            <div class="ranking-difficulty">移动: ${score.moveCount}次 | ${score.date}</div>
+                        `;
+                        myRankingEl.appendChild(li);
+                    });
+                }
+            }
+        }
+
+        // 修改密码
+        function changePassword() {
+            const oldPwd = document.getElementById('old-password').value;
+            const newPwd = document.getElementById('new-password').value;
+            const confirmNewPwd = document.getElementById('confirm-new-password').value;
+            const errorEl = document.getElementById('change-pwd-error');
+            const successEl = document.getElementById('change-pwd-success');
+
+            // 验证
+            if (!currentUser) {
+                errorEl.textContent = '用户未登录';
+                return;
+            }
+            if (oldPwd !== currentUser.password) {
+                errorEl.textContent = '原密码输入错误';
+                return;
+            }
+            if (!newPwd || newPwd.length < 6 || newPwd.length > 16) {
+                errorEl.textContent = '新密码必须为6-16位';
+                return;
+            }
+            if (newPwd !== confirmNewPwd) {
+                errorEl.textContent = '两次新密码输入不一致';
+                return;
+            }
+            if (newPwd === oldPwd) {
+                errorEl.textContent = '新密码不能与原密码相同';
+                return;
+            }
+
+            // 更新密码
+            currentUser.password = newPwd;
+            localStorage.setItem(`user_${currentUser.username}`, JSON.stringify(currentUser));
+
+            errorEl.textContent = '';
+            successEl.textContent = '密码修改成功！';
+
+            // 清空输入框
+            document.getElementById('old-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-new-password').value = '';
+
+            // 3秒后清除成功提示
+            setTimeout(() => {
+                successEl.textContent = '';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
